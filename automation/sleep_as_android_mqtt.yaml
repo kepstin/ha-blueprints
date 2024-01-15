@@ -1,0 +1,213 @@
+blueprint:
+  name: Sleep as Android MQTT
+  description: >
+    Perform actions based on events received from Sleep as Android's MQTT Automation.
+    
+    
+    You must set up the [Sleep as Android MQTT Automation](https://docs.sleep.urbandroid.org/services/mqtt.html) in the app, and you should turn off any events that you are not using in Settings → Services → Automation → Events.
+    For more details on what triggers each event, see the [Sleep as Android Automation docs](https://docs.sleep.urbandroid.org/services/automation.html#events).
+  domain: automation
+
+  input:
+    topic:
+      name: MQTT Topic
+      description: >
+        The MQTT Topic that Sleep as Android is sending events to.
+        This must match the configuration set in the Sleep as Android app exactly (case and punctuation matters).
+        Note that each user (device) needs a separate topic.
+      selector:
+        text:
+      default: SleepAsAndroid
+
+    condition:
+      name: Condition
+      description: >
+        Additional condition to check before performing any actions.
+        You might want to confirm that the user is home, for example.
+      selector:
+        condition:
+      default: []
+
+    sleep_tracking_started_action:
+      name: Sleep tracking start
+      description: >
+        Action to perform when sleep tracking is started.
+        Sleep tracking can be started manually, or might be triggered automatically depending on app configuration.
+      selector:
+        action:
+      default: []
+
+    sleep_tracking_stopped_action:
+      name: Sleep tracking stop
+      description: >
+        Action to perform when sleep tracking is stopped.
+        This event will happen in all cases when sleep tracking is stopped.
+        Some examples include manually stopping tracking or dismissing an alarm.
+      selector:
+        action:
+      default: []
+
+    sleep_tracking_paused_action:
+      name: Sleep tracking pause
+      description: Action to perform when sleep tracking is manually paused.
+      selector:
+        action:
+      default: []
+
+    sleep_tracking_resumed_action:
+      name: Sleep tracking resume
+      description: Action to perform when sleep tracking resumes after being manually paused.
+      selector:
+        action:
+      default: []
+      
+    alarm_snooze_clicked_action:
+      name: Alarm snooze
+      selector:
+        action:
+      default: []
+      
+    alarm_snooze_cancelled:
+      name: Snooze canceled
+      description: >
+        The alarm is dismissed while is is snoozed.
+      selector:
+        action:
+      default: []
+        
+    time_to_bed_alarm_alert_action:
+      name: Bedtime
+      description: >
+        The bedtime notification is sent prior to the alarm time based on the desired sleep duration goal and set time to prepare for bed.
+        Additional adjustments may be applied based on smart wake up period and sleep deficit.
+        
+        
+        Variables:
+        
+        `alarm_start_time`: the time of the alarm that triggered the notification
+      selector:
+        action:
+      default: []
+      
+    alarm_alert_start_action:
+      name: Alarm started
+      selector:
+        action:
+      default: []
+        
+    alarm_alert_dismiss_action:
+      name: Alarm dismiss
+      selector:
+        action:
+      default: []
+      
+    alarm_skip_next_action:
+      name: Alarm skip next
+      description: >
+        The alarm was dismissed prior to when it would have started.
+      selector:
+        action:
+      default: []
+      
+    before_alarm_action:
+      name: Before alarm notification
+      description: >
+        Action to perform 1 hour before the next alarm starts.
+        While this event is intended to control whether an option is available to dismiss an alarm before it starts, the event could also be used to e.g. activate a sunrise light effect prior to the alarm time.
+        
+        
+        The Sleep as Android documentation incorrectly has this event listed as "show_skip_next_alarm", and says it includes the alarm start timestamp, but the `before_alarm` event does not include a timestamp.
+      selector:
+        action:
+      default: []
+    
+    alarm_rescheduled_action:
+      name: Reschedule alarm
+      selector:
+        action:
+      default: []
+      
+    debug_stored_traces:
+      name: "Debug: Number of stored traces"
+      description: >
+        Sleep as Android generates a large number of events while you are sleeping.
+        As a result, the default number of stored traces (5) might not contain the event you are looking for when you wake up.
+      selector:
+        number:
+          min: 1
+          max: 50
+          mode: box
+      default: 5
+
+mode: queued
+
+trace:
+  stored_traces: !input debug_stored_traces
+
+trigger:
+  platform: mqtt
+  topic: !input topic
+  variables:
+    event: "{{ trigger.payload_json.event }}"
+    value1: "{{ trigger.payload_json.value1 if trigger.payload_json.value1 is defined }}"
+    value2: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+
+condition: !input condition
+
+action:
+  - choose:
+      - conditions: "{{ event == 'sleep_tracking_started' }}"
+        sequence: !input sleep_tracking_started_action
+
+      - conditions: "{{ event == 'sleep_tracking_stopped' }}"
+        sequence: !input sleep_tracking_stopped_action
+
+      - conditions: "{{ event == 'sleep_tracking_paused' }}"
+        sequence: !input sleep_tracking_paused_action
+
+      - conditions: "{{ event == 'sleep_tracking_resumed' }}"
+        sequence: !input sleep_tracking_resumed_action
+
+      - conditions: "{{ event == 'time_to_bed_alarm_alert' }}"
+        sequence:
+          - variables:
+              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
+          - repeat:
+              count: 1
+              sequence: !input time_to_bed_alarm_alert_action
+          
+      - conditions: "{{ event == 'before_alarm' }}"
+        sequence: !input before_alarm_action
+            
+      - conditions: "{{ event == 'alarm_alert_start' }}"
+        sequence:
+          - variables:
+              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
+          - repeat:
+              count: 1
+              sequence: !input alarm_alert_start_action
+              
+      - conditions: "{{ event == 'alarm_alert_dismiss' }}"
+        sequence:
+          - variables:
+              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
+          - repeat:
+              count: 1
+              sequence: !input alarm_alert_dismiss_action
+
+      - conditions: "{{ event == 'alarm_snooze_clicked' }}"
+        sequence:
+          - variables:
+              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
+          - repeat:
+              count: 1
+              sequence: !input alarm_snooze_clicked_action
+              
+      - conditions: "{{ event == 'alarm_rescheduled' }}"
+        sequence: !input alarm_rescheduled_action
+
+    default:
+      - service: system_log.write
+        data:
+          level: warning
+          message: "Sleep as Android MQTT blueprint unhandled event: {{ event }}, value1: {{ value1 | default('[none]') }}, value2: {{ value2 | default('[none]') }}"
