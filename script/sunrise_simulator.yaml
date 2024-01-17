@@ -1,0 +1,203 @@
+blueprint:
+  name: Sunrise Simulation
+  domain: script
+
+  input:
+    duration:
+      name: Duration
+      description: Length of the sunrise effect
+      selector:
+        duration:
+      default:
+        hours: 0
+        minutes: 30
+        seconds: 0
+
+    target:
+      name: Target Lights
+      selector:
+        target:
+          entity:
+            - domain: light
+
+    start_brightness:
+      name: Start Brightness
+      selector:
+        number:
+          min: 0.4
+          max: 100
+          step: 0.2
+          unit_of_measurement: "%"
+      default: 0.8
+
+    start_color_temp:
+      name: Start color temperature
+      selector:
+        color_temp:
+          unit: kelvin
+          min: 2000
+          max: 6500
+      default: 2200
+
+    end_brightness:
+      name: End Brightness
+      selector:
+        number:
+          min: 0.4
+          max: 100
+          step: 0.1
+      default: 100
+
+    end_color_temp:
+      name: End color temperature
+      selector:
+        color_temp:
+          unit: kelvin
+          min: 2000
+          max: 6500
+      default: 4000
+
+    interval:
+      name: Interval
+      description: Frequency to perform light adjustments
+      selector:
+        number:
+          min: 1
+          max: 300
+          unit_of_measurement: seconds
+      default: 90
+
+    transition:
+      name: Transition
+      description: Duration of transitions during light adjustments
+      selector:
+        number:
+          min: 0
+          max: 300
+          step: 0.1
+          unit_of_measurement: seconds
+      default: 30
+
+    initial_transition:
+      name: Initial transition
+      description: Duration of the initial transition to the start state
+      selector:
+        number:
+          min: 0
+          max: 300
+          step: 0.1
+          unit_of_measurement: seconds
+      default: 1
+
+    separate_turn_on_commands:
+      name: Separate Turn On Commands
+      description: >
+        Use separate `light.turn_on` calls to transition brightness and color
+        temperature, needed for some light types (e.g. IKEA TRÅDFRI).
+
+
+        If used, the configured transition time will be split in half. The first
+        half will be used to adjust brightness, and the second half will be used
+        to adjust color temperature.
+      selector:
+        boolean:
+      default: false
+
+mode: restart
+icon: mdi:weather-sunset-up
+
+variables:
+  default_duration: !input duration
+  default_start_brightness: !input start_brightness
+  default_start_color_temp: !input start_color_temp
+  default_end_brightness: !input end_brightness
+  default_end_color_temp: !input end_color_temp
+  default_initial_transition: !input initial_transition
+  interval: !input interval
+  transition: !input transition
+  separate_turn_on_commands: !input separate_turn_on_commands
+
+fields:
+  duration:
+    name: Duration
+    description: Length of the sunrise effect
+    selector:
+      duration:
+    default: !input duration
+
+  start_brightness:
+    name: Start Brightness
+    selector:
+      number:
+        min: 0.4
+        max: 100
+        step: 0.2
+        unit_of_measurement: "%"
+    default: !input start_brightness
+
+  start_color_temp:
+    name: Start color temperature
+    selector:
+      color_temp:
+        unit: kelvin
+        min: 2000
+        max: 6500
+    default: !input start_color_temp
+
+  end_brightness:
+    name: End Brightness
+    selector:
+      number:
+        min: 0.4
+        max: 100
+        step: 0.1
+    default: !input end_brightness
+
+  end_color_temp:
+    name: End color temperature
+    selector:
+      color_temp:
+        unit: kelvin
+        min: 2000
+        max: 6500
+    default: !input end_color_temp
+
+  initial_transition:
+    name: Initial transition
+    description: Duration of the initial transition to the start state
+    selector:
+      number:
+        min: 0
+        max: 300
+        step: 0.1
+        unit_of_measurement: seconds
+    default: !input initial_transition
+
+sequence:
+  - variables:
+      color_temp_kelvin: "{{ start_color_temp | default(default_start_color_temp) }}"
+      brightness: "{{ (start_brightness | default(default_start_brightness) * 2.55) | int }}"
+      initial_transition: "{{ initial_transition | default(default_initial_transition) }}"
+      start_time: "{{ now() }}"
+  - if: "{{ separate_turn_on_commands }}"
+    then:
+      - service: light.turn_on
+        target: !input target
+        data:
+          transition: "{{ initial_transition / 2 }}"
+          brightness: "{{ brightness }}"
+      - delay:
+          seconds: "{{ initial_transition / 2 + 0.1 }}"
+      - service: light.turn_on
+        target: !input target
+        data:
+          transition: "{{ initial_transition / 2 }}"
+          color_temp_kelvin: "{{ color_temp_kelvin }}"
+    else:
+      - service: light.turn_on
+        target: !input target
+        data:
+          transition: "{{ initial_transition }}"
+          brightness: "{{ brightness }}"
+          color_temp_kelvin: "{{ color_temp_kelvin }}"
+
