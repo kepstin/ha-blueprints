@@ -1,11 +1,25 @@
 blueprint:
-  name: Sleep as Android MQTT
+  name: Sleep as Android (MQTT)
   description: >
-    Perform actions based on events received from Sleep as Android's MQTT Automation.
+    Perform actions based on events received from Sleep as Android's MQTT
+    Automation.
     
     
-    You must set up the [Sleep as Android MQTT Automation](https://docs.sleep.urbandroid.org/services/mqtt.html) in the app, and you should turn off any events that you are not using in Settings → Services → Automation → Events.
-    For more details on what triggers each event, see the [Sleep as Android Automation docs](https://docs.sleep.urbandroid.org/services/automation.html#events).
+    You must set up the
+    [Sleep as Android MQTT Automation](https://docs.sleep.urbandroid.org/services/mqtt.html)
+    in the app, and you should turn off any events that you are not using in
+    Settings → Services → Automation → Events.
+    For more details on what triggers each event, see the
+    [Sleep as Android Automation docs](https://docs.sleep.urbandroid.org/services/automation.html#events).
+
+
+    Events from realtime sleep phase tracking are not made available, since the
+    app produces lots of events and the data is low quality (sleep phases can
+    only be detected reliably from whole-night data).
+
+
+    Version: 0.2.0
+  source_url: https://github.com/kepstin/ha-blueprints/blob/main/blueprints/sleep_as_android_mqtt.yaml
   domain: automation
 
   input:
@@ -13,7 +27,8 @@ blueprint:
       name: MQTT Topic
       description: >
         The MQTT Topic that Sleep as Android is sending events to.
-        This must match the configuration set in the Sleep as Android app exactly (case and punctuation matters).
+        This must match the configuration set in the Sleep as Android app
+        exactly (case and punctuation matters).
         Note that each user (device) needs a separate topic.
       selector:
         text:
@@ -32,7 +47,8 @@ blueprint:
       name: Sleep tracking start
       description: >
         Action to perform when sleep tracking is started.
-        Sleep tracking can be started manually, or might be triggered automatically depending on app configuration.
+        Sleep tracking can be started manually, or might be triggered
+        automatically depending on app configuration.
       selector:
         action:
       default: []
@@ -43,6 +59,11 @@ blueprint:
         Action to perform when sleep tracking is stopped.
         This event will happen in all cases when sleep tracking is stopped.
         Some examples include manually stopping tracking or dismissing an alarm.
+
+
+        Note that this event will not be triggered if sleep tracking was not
+        started.
+        The "Smart Period" feature does start sleep tracking.
       selector:
         action:
       default: []
@@ -56,21 +77,41 @@ blueprint:
 
     sleep_tracking_resumed_action:
       name: Sleep tracking resume
-      description: Action to perform when sleep tracking resumes after being manually paused.
+      description: >
+        Action to perform when sleep tracking resumes after being manually
+        paused.
       selector:
         action:
       default: []
       
     alarm_snooze_clicked_action:
       name: Alarm snooze
+      description: >
+        You have snoozed a ringing alarm.
+
+
+        #### Variables:
+
+        `alarm_start_time`: The time of the alarm.
+
+        `alarm_label`: The label of the alarm.
+        This will not be defined if the alarm has no label.
       selector:
         action:
       default: []
       
-    alarm_snooze_cancelled:
+    alarm_snooze_canceled_action:
       name: Snooze canceled
       description: >
-        The alarm is dismissed while is is snoozed.
+        You have canceled an alarm that is currently snoozed.
+
+
+        #### Variables:
+
+        `alarm_start_time`: The time of the alarm.
+
+        `alarm_label`: The label of the alarm.
+        This will not be defined if the alarm has no label.
       selector:
         action:
       default: []
@@ -78,25 +119,56 @@ blueprint:
     time_to_bed_alarm_alert_action:
       name: Bedtime
       description: >
-        The bedtime notification is sent prior to the alarm time based on the desired sleep duration goal and set time to prepare for bed.
-        Additional adjustments may be applied based on smart wake up period and sleep deficit.
+        Fires when you get a bedtime notification.
+
+
+        The bedtime notification is sent prior to the alarm time based on the
+        desired sleep duration goal and set time to prepare for bed.
+        Additional adjustments may be applied based on smart wake up period and
+        sleep deficit.
         
         
-        Variables:
+        #### Variables:
         
-        `alarm_start_time`: the time of the alarm that triggered the notification
+        `alarm_start_time`: The time of the alarm that triggered the
+        notification.
+
+        `alarm_label`: The label of the alarm that triggered the notification.
+        This will not be defined if the alarm has no label.
       selector:
         action:
       default: []
       
     alarm_alert_start_action:
       name: Alarm started
+      description: >
+        Fires when alarm starts.
+
+
+        #### Variables:
+
+        `alarm_start_time`: The time of the alarm.
+
+        `alarm_label`: The label of the alarm.
+        This will not be defined if the alarm has no label.
       selector:
         action:
       default: []
         
     alarm_alert_dismiss_action:
       name: Alarm dismiss
+      description: >
+        Fires when you dismiss alarm (after you solve CAPTCHA, if it's set).
+
+
+        #### Variables:
+
+        `alarm_start_time`: The time of the alarm.
+        This will not be defined if the alarm was for a nap.
+
+        `alarm_label`: The label of the alarm.
+        This will not be defined if the alarm has no label, or if the alarm was
+        for a nap.
       selector:
         action:
       default: []
@@ -104,25 +176,122 @@ blueprint:
     alarm_skip_next_action:
       name: Alarm skip next
       description: >
-        The alarm was dismissed prior to when it would have started.
+        Fires when you dismiss an alarm from notification before it rings.
+
+
+        #### Variables:
+
+        `alarm_start_time`: The time of the alarm.
+
+        `alarm_label`: The label of the alarm.
+        This will not be defined if the alarm has no label.
       selector:
         action:
       default: []
-      
+
+    antisnoring_action:
+      name: Anti-Snoring
+      description: >
+        Fires when antisnoring is triggered.
+      selector:
+        action:
+      default: []
+
+    smart_period_action:
+      name: Smart period
+      description: >
+        Fires at the start of the smart period.
+      selector:
+        action:
+      default: []
+
+    before_smart_period_action:
+      name: Before smart period
+      description: >
+        Fires 45 minutes before the start of smart period.
+      selector:
+        action:
+      default: []
+
+    lullaby_start_action:
+      name: Lullabies start
+      description: >
+        Fires when lullaby starts playing.
+      selector:
+        action:
+      default: []
+
+    lullaby_stop_action:
+      name: Lullabies stop
+      description: >
+        Fires when lullaby is stopped (either manually or automatically).
+      selector:
+        action:
+      default: []
+
+    lullaby_volume_down_action:
+      name: Lullabies volume down
+      description: >
+        Fires when we detect you fell asleep and started lowering the volume of
+        lullabies.
+      selector:
+        action:
+      default: []
+
+    apnea_alarm_action:
+      name: Low breath rate alarm
+      description: >
+        Fires when we detect a significant dip in your oxygen levels.
+      selector:
+        action:
+      default: []
+
+    sound_event_action:
+      name: Sound event
+      description: >
+        Fires when a sound event is detected.
+
+        #### Variables
+
+        `sound_event`: One of the following values:
+
+
+        * `snore`: Snoring
+
+        * `talk`: Talking
+
+        * `cough`: Cough and sneeze
+
+        * `baby`: Baby cry
+
+        * `laugh`: Laughter
+      selector:
+        action:
+      default: []
+
     before_alarm_action:
       name: Before alarm notification
       description: >
         Action to perform 1 hour before the next alarm starts.
-        While this event is intended to control whether an option is available to dismiss an alarm before it starts, the event could also be used to e.g. activate a sunrise light effect prior to the alarm time.
+        While this event is intended to control whether an option is available
+        to dismiss an alarm before it starts, the event could also be used to
+        e.g. activate a sunrise light effect prior to the alarm time.
         
         
-        The Sleep as Android documentation incorrectly has this event listed as "show_skip_next_alarm", and says it includes the alarm start timestamp, but the `before_alarm` event does not include a timestamp.
+        The Sleep as Android documentation incorrectly has this event listed as
+        `show_skip_next_alarm`, and says it includes the alarm start timestamp,
+        but the `before_alarm` event does not include a timestamp.
       selector:
         action:
       default: []
     
     alarm_rescheduled_action:
       name: Reschedule alarm
+      description: >
+        Fired whenever the time of the next active alarm has changed.
+        This includes things like creating or deleting an alarm, or snoozing
+        an alarm.
+        No information is provided about the new time of the alarm.
       selector:
         action:
       default: []
@@ -130,8 +299,10 @@ blueprint:
     debug_stored_traces:
       name: "Debug: Number of stored traces"
       description: >
-        Sleep as Android generates a large number of events while you are sleeping.
-        As a result, the default number of stored traces (5) might not contain the event you are looking for when you wake up.
+        Sleep as Android generates a large number of events while you are
+        sleeping.
+        As a result, the default number of stored traces (5) might not contain
+        the event you are looking for when you wake up.
       selector:
         number:
           min: 1
@@ -145,69 +316,246 @@ trace:
   stored_traces: !input debug_stored_traces
 
 trigger:
-  platform: mqtt
-  topic: !input topic
-  variables:
-    event: "{{ trigger.payload_json.event }}"
-    value1: "{{ trigger.payload_json.value1 if trigger.payload_json.value1 is defined }}"
-    value2: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+  - id: sleep_tracking_started
+    platform: mqtt
+    topic: !input topic
+    payload: sleep_tracking_started
+    value_template: "{{ payload_json.event }}"
+
+  - id: sleep_tracking_stopped
+    platform: mqtt
+    topic: !input topic
+    payload: sleep_tracking_stopped
+    value_template: "{{ payload_json.event }}"
+
+  - id: sleep_tracking_paused
+    platform: mqtt
+    topic: !input topic
+    payload: sleep_tracking_paused
+    value_template: "{{ payload_json.event }}"
+
+  - id: sleep_tracking_resumed
+    platform: mqtt
+    topic: !input topic
+    payload: sleep_tracking_resumed
+    value_template: "{{ payload_json.event }}"
+
+  - id: alarm_snooze_clicked
+    platform: mqtt
+    topic: !input topic
+    payload: alarm_snooze_clicked
+    value_template: "{{ payload_json.event }}"
+    variables:
+      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
+      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+
+  - id: alarm_snooze_canceled
+    platform: mqtt
+    topic: !input topic
+    payload: alarm_snooze_canceled
+    value_template: "{{ payload_json.event }}"
+    variables:
+      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
+      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+
+  - id: time_to_bed_alarm_alert
+    platform: mqtt
+    topic: !input topic
+    payload: time_to_bed_alarm_alert
+    value_template: "{{ payload_json.event }}"
+    variables:
+      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
+      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+
+  - id: alarm_alert_start
+    platform: mqtt
+    topic: !input topic
+    payload: alarm_alert_start
+    value_template: "{{ payload_json.event }}"
+    variables:
+      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
+      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+
+  - id: alarm_alert_dismiss
+    platform: mqtt
+    topic: !input topic
+    payload: alarm_alert_dismiss
+    value_template: "{{ payload_json.event }}"
+    variables:
+      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() if trigger.payload_json.value1 != 'null' }}"
+      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+
+  - id: alarm_skip_next
+    platform: mqtt
+    topic: !input topic
+    payload: alarm_skip_next
+    value_template: "{{ payload_json.event }}"
+    variables:
+      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
+      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
+
+  - id: antisnoring
+    platform: mqtt
+    topic: !input topic
+    payload: antisnoring
+    value_template: "{{ payload_json.event }}"
+
+  - id: smart_period
+    platform: mqtt
+    topic: !input topic
+    payload: smart_period
+    value_template: "{{ payload_json.event }}"
+
+  - id: before_smart_period
+    platform: mqtt
+    topic: !input topic
+    payload: before_smart_period
+    value_template: "{{ payload_json.event }}"
+
+  - id: lullaby_start
+    platform: mqtt
+    topic: !input topic
+    payload: lullaby_start
+    value_template: "{{ payload_json.event }}"
+
+  - id: lullaby_stop
+    platform: mqtt
+    topic: !input topic
+    payload: lullaby_stop
+    value_template: "{{ payload_json.event }}"
+
+  - id: lullaby_volume_down
+    platform: mqtt
+    topic: !input topic
+    payload: lullaby_volume_down
+    value_template: "{{ payload_json.event }}"
+
+  - id: apnea_alarm
+    platform: mqtt
+    topic: !input topic
+    payload: apnea_alarm
+    value_template: "{{ payload_json.event }}"
+
+  - id: sound_event
+    platform: mqtt
+    topic: !input topic
+    payload: sound_event
+    value_template: "{{ (payload_json.event | regex_findall('^sound_event'))[0] | default(payload_json.event) }}"
+    variables:
+      sound_event: "{{ (payload_json.event | regex_findall('^sound_event_(.*)'))[0] }}"
+
+  - id: before_alarm
+    platform: mqtt
+    topic: !input topic
+    payload: before_alarm
+    value_template: "{{ payload_json.event }}"
+
+  - id: alarm_rescheduled
+    platform: mqtt
+    topic: !input topic
+    payload: alarm_rescheduled
+    value_template: "{{ payload_json.event }}"
 
 condition: !input condition
 
 action:
   - choose:
-      - conditions: "{{ event == 'sleep_tracking_started' }}"
+      - conditions:
+          - condition: trigger
+            id: sleep_tracking_started
         sequence: !input sleep_tracking_started_action
 
-      - conditions: "{{ event == 'sleep_tracking_stopped' }}"
+      - conditions:
+          - condition: trigger
+            id: sleep_tracking_stopped
         sequence: !input sleep_tracking_stopped_action
 
-      - conditions: "{{ event == 'sleep_tracking_paused' }}"
+      - conditions:
+          - condition: trigger
+            id: sleep_tracking_paused
         sequence: !input sleep_tracking_paused_action
 
-      - conditions: "{{ event == 'sleep_tracking_resumed' }}"
+      - conditions:
+          - condition: trigger
+            id: sleep_tracking_resumed
         sequence: !input sleep_tracking_resumed_action
 
-      - conditions: "{{ event == 'time_to_bed_alarm_alert' }}"
-        sequence:
-          - variables:
-              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
-          - repeat:
-              count: 1
-              sequence: !input time_to_bed_alarm_alert_action
+      - conditions:
+          - condition: trigger
+            id: alarm_snooze_clicked
+        sequence: !input alarm_snooze_clicked_action
+
+      - conditions:
+          - condition: trigger
+            id: alarm_snooze_canceled
+        sequence: !input alarm_snooze_canceled_action
+
+      - conditions:
+          - condition: trigger
+            id: time_to_bed_alarm_alert
+        sequence: !input time_to_bed_alarm_alert_action
           
-      - conditions: "{{ event == 'before_alarm' }}"
+      - conditions:
+          - condition: trigger
+            id: alarm_alert_start
+        sequence: !input alarm_alert_start_action
+
+      - conditions:
+          - condition: trigger
+            id: alarm_alert_dismiss
+        sequence: !input alarm_alert_dismiss_action
+
+      - conditions:
+          - condition: trigger
+            id: alarm_skip_next
+        sequence: !input alarm_skip_next_action
+
+      - conditions:
+          - condition: trigger
+            id: antisnoring
+        sequence: !input antisnoring_action
+
+      - conditions:
+          - condition: trigger
+            id: smart_period
+        sequence: !input smart_period_action
+
+      - conditions:
+          - condition: trigger
+            id: before_smart_period
+        sequence: !input before_smart_period_action
+
+      - conditions:
+          - condition: trigger
+            id: lullaby_start
+        sequence: !input lullaby_start_action
+
+      - conditions:
+          - condition: trigger
+            id: lullaby_stop
+        sequence: !input lullaby_stop_action
+
+      - conditions:
+          - condition: trigger
+            id: lullaby_volume_down
+        sequence: !input lullaby_volume_down_action
+
+      - conditions:
+          - condition: trigger
+            id: apnea_alarm
+        sequence: !input apnea_alarm_action
+
+      - conditions:
+          - condition: trigger
+            id: sound_event
+        sequence: !input sound_event_action
+
+      - conditions:
+          - condition: trigger
+            id: before_alarm
         sequence: !input before_alarm_action
-            
-      - conditions: "{{ event == 'alarm_alert_start' }}"
-        sequence:
-          - variables:
-              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
-          - repeat:
-              count: 1
-              sequence: !input alarm_alert_start_action
-              
-      - conditions: "{{ event == 'alarm_alert_dismiss' }}"
-        sequence:
-          - variables:
-              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
-          - repeat:
-              count: 1
-              sequence: !input alarm_alert_dismiss_action
 
-      - conditions: "{{ event == 'alarm_snooze_clicked' }}"
-        sequence:
-          - variables:
-              alarm_start_time: "{{ as_datetime(value1 | int / 1000).isoformat() }}"
-          - repeat:
-              count: 1
-              sequence: !input alarm_snooze_clicked_action
-              
-      - conditions: "{{ event == 'alarm_rescheduled' }}"
+      - conditions:
+          - condition: trigger
+            id: alarm_rescheduled
         sequence: !input alarm_rescheduled_action
-
-    default:
-      - service: system_log.write
-        data:
-          level: warning
-          message: "Sleep as Android MQTT blueprint unhandled event: {{ event }}, value1: {{ value1 | default('[none]') }}, value2: {{ value2 | default('[none]') }}"
