@@ -18,7 +18,7 @@ blueprint:
     only be detected reliably from whole-night data).
 
 
-    Version: 0.2.0
+    Version: 0.3.1
   source_url: https://github.com/kepstin/ha-blueprints/blob/main/blueprints/sleep_as_android_mqtt.yaml
   domain: automation
 
@@ -316,246 +316,88 @@ trace:
   stored_traces: !input debug_stored_traces
 
 trigger:
-  - id: sleep_tracking_started
-    platform: mqtt
+  - platform: mqtt
     topic: !input topic
-    payload: sleep_tracking_started
-    value_template: "{{ payload_json.event }}"
-
-  - id: sleep_tracking_stopped
-    platform: mqtt
-    topic: !input topic
-    payload: sleep_tracking_stopped
-    value_template: "{{ payload_json.event }}"
-
-  - id: sleep_tracking_paused
-    platform: mqtt
-    topic: !input topic
-    payload: sleep_tracking_paused
-    value_template: "{{ payload_json.event }}"
-
-  - id: sleep_tracking_resumed
-    platform: mqtt
-    topic: !input topic
-    payload: sleep_tracking_resumed
-    value_template: "{{ payload_json.event }}"
-
-  - id: alarm_snooze_clicked
-    platform: mqtt
-    topic: !input topic
-    payload: alarm_snooze_clicked
-    value_template: "{{ payload_json.event }}"
     variables:
-      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
-      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
-
-  - id: alarm_snooze_canceled
-    platform: mqtt
-    topic: !input topic
-    payload: alarm_snooze_canceled
-    value_template: "{{ payload_json.event }}"
-    variables:
-      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
-      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
-
-  - id: time_to_bed_alarm_alert
-    platform: mqtt
-    topic: !input topic
-    payload: time_to_bed_alarm_alert
-    value_template: "{{ payload_json.event }}"
-    variables:
-      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
-      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
-
-  - id: alarm_alert_start
-    platform: mqtt
-    topic: !input topic
-    payload: alarm_alert_start
-    value_template: "{{ payload_json.event }}"
-    variables:
-      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
-      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
-
-  - id: alarm_alert_dismiss
-    platform: mqtt
-    topic: !input topic
-    payload: alarm_alert_dismiss
-    value_template: "{{ payload_json.event }}"
-    variables:
-      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() if trigger.payload_json.value1 != 'null' }}"
-      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
-
-  - id: alarm_skip_next
-    platform: mqtt
-    topic: !input topic
-    payload: alarm_skip_next
-    value_template: "{{ payload_json.event }}"
-    variables:
-      alarm_start_time: "{{ as_datetime(trigger.payload_json.value1 | int / 1000).isoformat() }}"
-      alarm_label: "{{ trigger.payload_json.value2 if trigger.payload_json.value2 is defined }}"
-
-  - id: antisnoring
-    platform: mqtt
-    topic: !input topic
-    payload: antisnoring
-    value_template: "{{ payload_json.event }}"
-
-  - id: smart_period
-    platform: mqtt
-    topic: !input topic
-    payload: smart_period
-    value_template: "{{ payload_json.event }}"
-
-  - id: before_smart_period
-    platform: mqtt
-    topic: !input topic
-    payload: before_smart_period
-    value_template: "{{ payload_json.event }}"
-
-  - id: lullaby_start
-    platform: mqtt
-    topic: !input topic
-    payload: lullaby_start
-    value_template: "{{ payload_json.event }}"
-
-  - id: lullaby_stop
-    platform: mqtt
-    topic: !input topic
-    payload: lullaby_stop
-    value_template: "{{ payload_json.event }}"
-
-  - id: lullaby_volume_down
-    platform: mqtt
-    topic: !input topic
-    payload: lullaby_volume_down
-    value_template: "{{ payload_json.event }}"
-
-  - id: apnea_alarm
-    platform: mqtt
-    topic: !input topic
-    payload: apnea_alarm
-    value_template: "{{ payload_json.event }}"
-
-  - id: sound_event
-    platform: mqtt
-    topic: !input topic
-    payload: sound_event
-    value_template: "{{ (payload_json.event | regex_findall('^sound_event'))[0] | default(payload_json.event) }}"
-    variables:
-      sound_event: "{{ (payload_json.event | regex_findall('^sound_event_(.*)'))[0] }}"
-
-  - id: before_alarm
-    platform: mqtt
-    topic: !input topic
-    payload: before_alarm
-    value_template: "{{ payload_json.event }}"
-
-  - id: alarm_rescheduled
-    platform: mqtt
-    topic: !input topic
-    payload: alarm_rescheduled
-    value_template: "{{ payload_json.event }}"
+      event: >
+        {{
+          (trigger.payload_json.event | regex_findall('^sound_event'))[0]
+          | default(trigger.payload_json.event)
+        }}
+      is_alarm_event: >
+        {{
+          event in [
+            'alarm_snooze_clicked',
+            'alarm_snooze_canceled',
+            'time_to_bed_alarm_alert',
+            'alarm_alert_start',
+            'alarm_alert_dismiss',
+            'alarm_skip_next',
+            'before_smart_period'
+          ]
+        }}
+      alarm_start_time: >
+        {{
+          as_datetime(trigger.payload_json.value1 | int / 1000).isoformat()
+          if is_alarm_event
+            and trigger.payload_json.value1 is defined
+            and trigger.payload_json.value1 != 'null'
+          else none
+        }}
+      alarm_label: >
+        {{
+          trigger.payload_json.value2
+          if is_alarm_event and trigger.payload_json.value2 is defined
+          else none
+        }}
+      sound_event: >
+        {{
+          (trigger.payload_json.event | regex_findall('^sound_event_(.*)'))[0]
+          if event == 'sound_event'
+          else none
+        }}
 
 condition: !input condition
 
 action:
   - choose:
-      - conditions:
-          - condition: trigger
-            id: sleep_tracking_started
+      - conditions: "{{ event == 'sleep_tracking_started' }}"
         sequence: !input sleep_tracking_started_action
-
-      - conditions:
-          - condition: trigger
-            id: sleep_tracking_stopped
+      - conditions: "{{ event == 'sleep_tracking_stopped' }}"
         sequence: !input sleep_tracking_stopped_action
-
-      - conditions:
-          - condition: trigger
-            id: sleep_tracking_paused
+      - conditions: "{{ event == 'sleep_tracking_paused' }}"
         sequence: !input sleep_tracking_paused_action
-
-      - conditions:
-          - condition: trigger
-            id: sleep_tracking_resumed
+      - conditions: "{{ event == 'sleep_tracking_resumed' }}"
         sequence: !input sleep_tracking_resumed_action
-
-      - conditions:
-          - condition: trigger
-            id: alarm_snooze_clicked
+      - conditions: "{{ event == 'alarm_snooze_clicked' }}"
         sequence: !input alarm_snooze_clicked_action
-
-      - conditions:
-          - condition: trigger
-            id: alarm_snooze_canceled
+      - conditions: "{{ event == 'alarm_snooze_canceled' }}"
         sequence: !input alarm_snooze_canceled_action
-
-      - conditions:
-          - condition: trigger
-            id: time_to_bed_alarm_alert
+      - conditions: "{{ event == 'time_to_bed_alarm_alert' }}"
         sequence: !input time_to_bed_alarm_alert_action
-          
-      - conditions:
-          - condition: trigger
-            id: alarm_alert_start
+      - conditions: "{{ event == 'alarm_alert_start' }}"
         sequence: !input alarm_alert_start_action
-
-      - conditions:
-          - condition: trigger
-            id: alarm_alert_dismiss
+      - conditions: "{{ event == 'alarm_alert_dismiss' }}"
         sequence: !input alarm_alert_dismiss_action
-
-      - conditions:
-          - condition: trigger
-            id: alarm_skip_next
+      - conditions: "{{ event == 'alarm_skip_next' }}"
         sequence: !input alarm_skip_next_action
-
-      - conditions:
-          - condition: trigger
-            id: antisnoring
+      - conditions: "{{ event == 'antisnoring' }}"
         sequence: !input antisnoring_action
-
-      - conditions:
-          - condition: trigger
-            id: smart_period
+      - conditions: "{{ event == 'smart_period' }}"
         sequence: !input smart_period_action
-
-      - conditions:
-          - condition: trigger
-            id: before_smart_period
+      - conditions: "{{ event == 'before_smart_period' }}"
         sequence: !input before_smart_period_action
-
-      - conditions:
-          - condition: trigger
-            id: lullaby_start
+      - conditions: "{{ event == 'lullaby_start' }}"
         sequence: !input lullaby_start_action
-
-      - conditions:
-          - condition: trigger
-            id: lullaby_stop
+      - conditions: "{{ event == 'lullaby_stop' }}"
         sequence: !input lullaby_stop_action
-
-      - conditions:
-          - condition: trigger
-            id: lullaby_volume_down
+      - conditions: "{{ event == 'lullaby_volume_down' }}"
         sequence: !input lullaby_volume_down_action
-
-      - conditions:
-          - condition: trigger
-            id: apnea_alarm
+      - conditions: "{{ event == 'apnea_alarm' }}"
         sequence: !input apnea_alarm_action
-
-      - conditions:
-          - condition: trigger
-            id: sound_event
+      - conditions: "{{ event == 'sound_event' }}"
         sequence: !input sound_event_action
-
-      - conditions:
-          - condition: trigger
-            id: before_alarm
+      - conditions: "{{ event == 'before_alarm' }}"
         sequence: !input before_alarm_action
-
-      - conditions:
-          - condition: trigger
-            id: alarm_rescheduled
+      - conditions: "{{ event == 'alarm_rescheduled' }}"
         sequence: !input alarm_rescheduled_action
