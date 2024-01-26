@@ -63,7 +63,7 @@ blueprint:
 
         Note that this event will not be triggered if sleep tracking was not
         started.
-        The "Smart Period" feature does start sleep tracking.
+        The "Smart Period" feature does not start sleep tracking.
       selector:
         action:
       default: []
