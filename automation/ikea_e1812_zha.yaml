@@ -14,7 +14,7 @@ blueprint:
 
 
     Version: 0.1.1
-  source_url: https://github.com/kepstin/ha-blueprints/blob/main/automation/ikea_e1812.yaml
+  source_url: https://github.com/kepstin/ha-blueprints/blob/main/automation/ikea_e1812_zha.yaml
   domain: automation
   input:
     zha_controller_device:
