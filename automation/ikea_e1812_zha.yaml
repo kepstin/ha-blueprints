@@ -2,8 +2,8 @@ blueprint:
   name: IKEA E1812 TRÅDFRI Shortcut Button (ZHA, firmware 24.x.x)
   description: >
     Automation for performing actions triggered by an IKEA E1812 TRÅDFRI
-    Shortcut Button. Supports ZHA only, requires that the button is upgraded to
-    firmware version 24.x.x.
+    Shortcut Button.
+    Supports ZHA only, requires that the button is upgraded to firmware 24.x.x.
 
 
 
@@ -13,8 +13,8 @@ blueprint:
 
 
 
-    Version: 0.1.0
-  source_url: https://github.com/kepstin/ha-blueprints/blob/main/blueprints/ikea_e1812.yaml
+    Version: 0.1.1
+  source_url: https://github.com/kepstin/ha-blueprints/blob/main/automation/ikea_e1812.yaml
   domain: automation
   input:
     zha_controller_device:
@@ -78,42 +78,51 @@ trigger:
 
 action:
   - choose:
-      - conditions: "{{ trigger.event.data.command == 'on' }}"
+      - conditions:
+          - alias: Button short press
+            condition: "{{ trigger.event.data.command == 'on' }}"
         sequence:
-          - event: ahb_controller_event
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
             event_data:
               controller: !input zha_controller_device
               action: button_short
-          - choose:
+          - alias: Run custom action
+            choose:
               - conditions: []
                 sequence: !input action_button_short
 
-      - conditions: "{{ trigger.event.data.command == 'off' }}"
+      - conditions:
+          - alias: Button double press
+            condition: "{{ trigger.event.data.command == 'off' }}"
         sequence:
-          - event: ahb_controller_event
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
             event_data:
               controller: !input zha_controller_device
               action: button_double
-          - choose:
+          - alias: Run custom action
+            choose:
               - conditions: []
                 sequence: !input action_button_double
 
-      - conditions: "{{ trigger.event.data.command == 'move_with_on_off' }}"
-        # params: { move_mode: 0, rate: 83 }
+      - conditions:
+          - alias: Button long press
+            condition: "{{ trigger.event.data.command == 'move_with_on_off' }}"
         sequence:
-          - event: ahb_controller_event
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
             event_data:
               controller: !input zha_controller_device
               action: button_long
-          - choose:
-              - conditions: "{{ button_long_loop }}"
-                sequence:
-                  - repeat:
-                      while: "{{ repeat.index < button_long_max_loop_repeats | int }}"
-                      sequence: !input action_button_long
-            default: !input action_button_long
+          - alias: Run custom action with looping
+            repeat:
+              sequence: !input action_button_long
+              until: "{{ not button_long_loop or repeat.index >= button_long_max_loop_repeats | int }}"
 
-      - conditions: "{{ trigger.event.data.command == 'stop_with_on_off' }}"
+      - conditions:
+          - alias: Button release
+            condition: "{{ trigger.event.data.command == 'stop_with_on_off' }}"
         sequence:
           - event: ahb_controller_event
             event_data:
