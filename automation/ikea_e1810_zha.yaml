@@ -1,0 +1,669 @@
+blueprint:
+  name: IKEA E1810 TRÅDFRI Remote (ZHA, firmware 24.x.x)
+  description: >
+    Automation for performing actions triggered by an IKEA E1810 TRÅDFRI Remote
+    (5-button remote).
+    Supports ZHA only, requires that the remote is upgraded to firmware 24.x.x.
+    
+    
+    
+    This integration generates events compatible with Hooks from the
+    [Awesome HA Blueprints](https://epmatt.github.io/awesome-ha-blueprints)
+    project.
+    
+    
+    
+    Version: 0.1.0
+  source_url: https://github.com/kepstin/ha-blueprints/blob/main/automation/ikea_e1810.yaml
+  domain: automation
+  input:
+    zha_controller_device:
+      name: ZHA Controller Device
+      selector:
+        device:
+          integration: zha
+    
+    helper_last_controller_event:
+      name: Last Controller Event Helper
+      description: >
+        A helper that's used to store state of the automation between runs.
+        The helper is needed in order for button release events and emulated
+        button double press events to work.
+
+
+
+        You will need to manually create a "Text" Helper (`input_text` entity)
+        separately.
+        Ensure that the Minimum length is set to 0, and Maximum length is set
+        to 255.
+        Each automation created from this blueprint needs a separate helper. 
+
+    action_button_center_short:
+      name: Power button short press action
+      default: []
+      selector:
+        action:
+    
+    action_button_center_long:
+      name: Power button long press action
+      description: >
+        The power button long press on this remote is designed to reset all
+        bound lights by turning them on at a fixed brightness.
+        As a result, the behaviour is that the remote immediately sends a
+        command which triggers the short press action when the button is pushed.
+        If the button continues to be held down for at least 3 seconds, the
+        remote additionally sends a sequence of commands which triggers the long
+        press action.
+        No command is sent when the button is released, so looping is not
+        available.
+      default: []
+      selector:
+        action:
+    
+    emulate_button_center_double:
+      name: Emulate power button double press
+      description: >
+        Enabling this option will allow detecting a double press and running
+        a separate action.
+        In order to detect a double press, the single press action will be
+        delayed by the time configured in _Double press delay_, below.
+      default: false
+      selector:
+        boolean:
+    
+    action_button_center_double:
+      name: Power button double press action
+      default: []
+      selector:
+        action:
+    
+    action_button_up_short:
+      name: Brightness up button short press action
+      default: []
+      selector:
+        action:
+        
+    emulate_button_up_double:
+      name: Emulate brightness up button double press
+      description: >
+        Enabling this option will allow detecting a double press and running
+        a separate action.
+        In order to detect a double press, the single press action will be
+        delayed by the time configured in _Double press delay_, below.
+      default: false
+      selector:
+        boolean:
+        
+    action_button_up_double:
+      name: Brightness up button double press action
+      default: []
+      selector:
+        action:
+    
+    action_button_up_long:
+      name: Brightness up button long press action
+      default: []
+      selector:
+        action:
+        
+    action_button_up_release:
+      name: Brightness up button long press release action
+      default: []
+      selector:
+        action:
+        
+    button_up_long_loop:
+      name: Loop brightness up button long press action until release
+      default: false
+      selector:
+        boolean:
+        
+    button_up_long_max_loop_repeats:
+      name: Brightness up button max loop repeats
+      default: 500
+      selector:
+        number:
+          min: 1
+          max: 5000
+          mode: slider
+          step: 1
+    
+    action_button_down_short:
+      name: Brightness down button short press action
+      default: []
+      selector:
+        action:
+    
+    emulate_button_down_double:
+      name: Emulate brightness down button double press
+      description: >
+        Enabling this option will allow detecting a double press and running
+        a separate action.
+        In order to detect a double press, the single press action will be
+        delayed by the time configured in _Double press delay_, below.
+      default: false
+      selector:
+        boolean:
+    
+    action_button_down_double:
+      name: Brightness down button double press action
+      default: []
+      selector:
+        action:
+        
+    action_button_down_long:
+      name: Brightness down button long press action
+      default: []
+      selector:
+        action:
+
+    action_button_down_release:
+      name: Brightness down button long press release action
+      default: []
+      selector:
+        action:
+        
+    button_down_long_loop:
+      name: Loop brightness down button long press action until release
+      default: false
+      selector:
+        boolean:
+        
+    button_down_long_max_loop_repeats:
+      name: Brightness down button max loop repeats
+      default: 500
+      selector:
+        number:
+          min: 1
+          max: 5000
+          mode: slider
+          step: 1
+
+    action_button_left_short:
+      name: Left button short press action
+      default: []
+      selector:
+        action:
+    
+    emulate_button_left_double:
+      name: Emulate left button double press
+      description: >
+        Enabling this option will allow detecting a double press and running
+        a separate action.
+        In order to detect a double press, the single press action will be
+        delayed by the time configured in _Double press delay_, below.
+      default: false
+      selector:
+        boolean:
+    
+    action_button_left_double:
+      name: Left button double press action
+      default: []
+      selector:
+        action:
+
+    action_button_left_long:
+      name: Left button long press action
+      default: []
+      selector:
+        action:
+        
+    action_button_left_release:
+      name: Left button long press release action
+      default: []
+      selector:
+        action:
+        
+    button_left_long_loop:
+      name: Loop left button long press action until release
+      default: false
+      selector:
+        boolean:
+        
+    button_left_long_max_loop_repeats:
+      name: Left button max loop repeats
+      default: 500
+      selector:
+        number:
+          min: 1
+          max: 5000
+          mode: slider
+          step: 1
+
+    double_press_delay:
+      name: Double press delay
+      description: >
+        Max delay allowed between the first and second press in order to be
+        counted as a double press event.
+      default: 500
+      selector:
+        number:
+          min: 100
+          max: 5000
+          unit_of_measurement: ms
+          step: 10
+
+mode: restart
+max_exceeded: silent
+
+variables:
+  helper_last_controller_event: !input helper_last_controller_event
+  emulate_button_center_double: !input emulate_button_center_double
+  emulate_button_up_double: !input emulate_button_up_double
+  button_up_long_loop: !input button_up_long_loop
+  button_up_long_max_loop_repeats: !input button_up_long_max_loop_repeats
+  emulate_button_down_double: !input emulate_button_down_double
+  button_down_long_loop: !input button_down_long_loop
+  button_down_long_max_loop_repeats: !input button_down_long_max_loop_repeats
+  emulate_button_left_double: !input emulate_button_left_double
+  button_left_long_loop: !input button_left_long_loop
+  button_left_long_max_loop_repeats: !input button_left_long_max_loop_repeats
+  double_press_delay: !input double_press_delay
+
+  last_controller_event: "{{ states(helper_last_controller_event) | default('') }}"
+  last_controller_event_json: "{{ last_controller_event | from_json if last_controller_event | regex_match('^\{') else {} }}"
+  last_controller_event_action: "{{ last_controller_event_json.a | default('') }}"
+  last_controller_event_timedelta: "{{ trigger.event.time_fired | as_datetime - last_controller_event_json.t | as_datetime if last_controller_event_json.t is defined }}"
+
+trigger:
+  - platform: event
+    event_type: zha_event
+    event_data:
+      device_id: !input zha_controller_device
+
+action:
+  - choose:
+      - conditions:
+          - alias: Power button short press
+            condition: "{{ trigger.event.data.command == 'toggle' }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_center_short', 't': trigger.event.time_fired } | to_json }}"
+          - choose:
+              - conditions: "{{ emulate_button_center_double }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - alias: Power button double press
+                            condition: "{{ last_controller_event_action == 'button_center_short' and last_controller_event_timedelta <= timedelta(milliseconds=double_press_delay) }}"
+                        sequence:
+                          - alias: Update last controller event helper
+                            service: input_text.set_value
+                            data:
+                              entity_id: !input helper_last_controller_event
+                              value: "{{ {'a': 'button_center_double', 't': trigger.event.time_fired } | to_json }}"
+                          - alias: Send awesome-ha-blueprints controller event
+                            event: ahb_controller_event
+                            event_data:
+                              controller: "{{ controller_id }}"
+                              action: button_center_double
+                          - alias: Run custom action
+                            choose:
+                              - conditions: []
+                                sequence: !input action_button_center_double
+                    default:
+                      - alias: Wait for double press event to occur (automation will be restarted if received)
+                        delay:
+                          milliseconds: "{{ double_press_delay }}"
+                      - alias: Send awesome-ha-blueprints controller event
+                        event: ahb_controller_event
+                        event_data:
+                          controller: "{{ controller_id }}"
+                          action: button_center_short
+                      - alias: Run custom action
+                        choose:
+                          - conditions: []
+                            sequence: !input action_button_center_short
+
+            default:
+              - alias: Send awesome-ha-blueprints controller event
+                event: ahb_controller_event
+                event_data:
+                  controller: "{{ controller_id }}"
+                  action: button_center_short
+              - alias: Run custom action
+                choose:
+                  - conditions: []
+                    sequence: !input action_button_center_short
+        
+      - conditions:
+          - alias: Power button long press
+            condition: "{{ trigger.event.data.command == 'press' and trigger.event.data.params.param1 == 2 }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_center_long', 't': trigger.event.time_fired } | to_json }}"
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
+            event_data:
+              controller: !input zha_controller_device
+              action: button_center_long
+          - alias: Run custom action
+            choose:
+              - conditions: []
+                sequence: !input action_button_center_long
+
+      - conditions:
+          - alias: Brightness up button short press
+            condition: "{{ trigger.event.data.command == 'step_with_on_off' and trigger.event.data.params.step_mode == 0 }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_up_short', 't': trigger.event.time_fired } | to_json }}"
+          - choose:
+              - conditions: "{{ emulate_button_up_double }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - alias: Brightness up button double press
+                            condition: "{{ last_controller_event_action == 'button_up_short' and last_controller_event_timedelta <= timedelta(milliseconds=double_press_delay) }}"
+                        sequence:
+                          - alias: Update last controller event helper
+                            service: input_text.set_value
+                            data:
+                              entity_id: !input helper_last_controller_event
+                              value: "{{ {'a': 'button_up_double', 't': trigger.event.time_fired } | to_json }}"
+                          - alias: Send awesome-ha-blueprints controller event
+                            event: ahb_controller_event
+                            event_data:
+                              controller: "{{ controller_id }}"
+                              action: button_up_double
+                          - alias: Run custom action
+                            choose:
+                              - conditions: []
+                                sequence: !input action_button_up_double
+
+                    default:
+                      - alias: Wait for double press event to occur (automation will be restarted if received)
+                        delay:
+                          milliseconds: "{{ double_press_delay }}"
+                      - alias: Send awesome-ha-blueprints controller event
+                        event: ahb_controller_event
+                        event_data:
+                          controller: "{{ controller_id }}"
+                          action: button_up_short
+                      - alias: Run custom action
+                        choose:
+                          - conditions: []
+                            sequence: !input action_button_up_short
+            default:
+              - alias: Send awesome-ha-blueprints controller event
+                event: ahb_controller_event
+                event_data:
+                  controller: !input zha_controller_device
+                  action: button_up_short
+              - alias: Run custom action
+                choose:
+                  - conditions: []
+                    sequence: !input action_button_up_short
+
+      - conditions:
+          - alias: Brightness up button long press
+            condition: "{{ trigger.event.data.command == 'move_with_on_off' and trigger.event.data.params.move_mode == 0 }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_up_long', 't': trigger.event.time_fired } | to_json }}"
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
+            event_data:
+              controller: !input zha_controller_device
+              action: button_up_long
+          - alias: Run custom action with looping
+            repeat:
+              sequence: !input action_button_up_long
+              until: "{{ not button_up_long_loop or repeat.index >= button_up_long_max_loop_repeats | int }}"
+
+      - conditions:
+          - alias: Brightness up button release
+            condition: "{{ trigger.event.data.command == 'stop_with_on_off' and last_controller_event_action == 'button_up_long' }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_up_release', 't': trigger.event.time_fired } | to_json }}"
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
+            event_data:
+              controller: !input zha_controller_device
+              action: button_up_release
+          - alias: Run custom action
+            choose:
+              - conditions: []
+                sequence: !input action_button_up_release
+
+      - conditions:
+          - alias: Brightness down button short press
+            condition: "{{ trigger.event.data.command == 'step' and trigger.event.data.params.step_mode == 1 }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_down_short', 't': trigger.event.time_fired } | to_json }}"
+          - choose:
+              - conditions: "{{ emulate_button_down_double }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - alias: Brightness down button double press
+                            condition: "{{ last_controller_event_action == 'button_down_short' and last_controller_event_timedelta <= timedelta(milliseconds=double_press_delay) }}"
+                        sequence:
+                          - alias: Update last controller event helper
+                            service: input_text.set_value
+                            data:
+                              entity_id: !input helper_last_controller_event
+                              value: "{{ {'a': 'button_down_double', 't': trigger.event.time_fired } | to_json }}"
+                          - alias: Send awesome-ha-blueprints controller event
+                            event: ahb_controller_event
+                            event_data:
+                              controller: "{{ controller_id }}"
+                              action: button_down_double
+                          - alias: Run custom action
+                            choose:
+                              - conditions: []
+                                sequence: !input action_button_down_double
+
+                    default:
+                      - alias: Wait for double press event to occur (automation will be restarted if received)
+                        delay:
+                          milliseconds: "{{ double_press_delay }}"
+                      - alias: Send awesome-ha-blueprints controller event
+                        event: ahb_controller_event
+                        event_data:
+                          controller: "{{ controller_id }}"
+                          action: button_down_short
+                      - alias: Run custom action
+                        choose:
+                          - conditions: []
+                            sequence: !input action_button_down_short
+            default:
+              - alias: Send awesome-ha-blueprints controller event
+                event: ahb_controller_event
+                event_data:
+                  controller: !input zha_controller_device
+                  action: button_down_short
+              - alias: Run custom action
+                choose:
+                  - conditions: []
+                    sequence: !input action_button_down_short
+
+      - conditions:
+          - alias: Brightness down button long press
+            condition: "{{ trigger.event.data.command == 'move' and trigger.event.data.params.move_mode == 1 }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_down_long', 't': trigger.event.time_fired } | to_json }}"
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
+            event_data:
+              controller: !input zha_controller_device
+              action: button_down_long
+          - alias: Run custom action with looping
+            repeat:
+              sequence: !input action_button_down_long
+              until: "{{ not button_down_long_loop or repeat.index >= button_down_long_max_loop_repeats | int }}"
+
+      - conditions:
+          - alias: Brightness down button release
+            condition: "{{ trigger.event.data.command == 'stop' and last_controller_event_action == 'button_down_long' }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_down_release', 't': trigger.event.time_fired } | to_json }}"
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
+            event_data:
+              controller: !input zha_controller_device
+              action: button_down_release
+          - alias: Run custom action
+            choose:
+              - conditions: []
+                sequence: !input action_button_down_release
+
+      - conditions:
+          - alias: Left button short press
+            condition: "{{ trigger.event.data.command == 'press' and trigger.event.data.params.param1 == 257 }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_left_short', 't': trigger.event.time_fired } | to_json }}"
+          - choose:
+              - conditions: "{{ emulate_button_left_double }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - alias: Left button double press
+                            condition: "{{ last_controller_event_action == 'button_left_short' and last_controller_event_timedelta <= timedelta(milliseconds=double_press_delay) }}"
+                        sequence:
+                          - alias: Update last controller event helper
+                            service: input_text.set_value
+                            data:
+                              entity_id: !input helper_last_controller_event
+                              value: "{{ {'a': 'button_left_double', 't': trigger.event.time_fired } | to_json }}"
+                          - alias: Send awesome-ha-blueprints controller event
+                            event: ahb_controller_event
+                            event_data:
+                              controller: "{{ controller_id }}"
+                              action: button_left_double
+                          - alias: Run custom action
+                            choose:
+                              - conditions: []
+                                sequence: !input action_button_left_double
+
+                    default:
+                      - alias: Wait for double press event to occur (automation will be restarted if received)
+                        delay:
+                          milliseconds: "{{ double_press_delay }}"
+                      - alias: Send awesome-ha-blueprints controller event
+                        event: ahb_controller_event
+                        event_data:
+                          controller: "{{ controller_id }}"
+                          action: button_left_short
+                      - alias: Run custom action
+                        choose:
+                          - conditions: []
+                            sequence: !input action_button_left_short
+            default:
+              - alias: Send awesome-ha-blueprints controller event
+                event: ahb_controller_event
+                event_data:
+                  controller: !input zha_controller_device
+                  action: button_left_short
+              - alias: Run custom action
+                choose:
+                  - conditions: []
+                    sequence: !input action_button_left_short
+                    
+      - conditions:
+          - alias: Left button long press
+            condition: "{{ trigger.event.data.command == 'hold' and trigger.event.data.params.param1 == 3329 }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_left_long', 't': trigger.event.time_fired } | to_json }}"
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
+            event_data:
+              controller: !input zha_controller_device
+              action: button_left_long
+          - alias: Run custom action with looping
+            repeat:
+              sequence: !input action_button_left_long
+              until: "{{ not button_left_long_loop or repeat.index >= button_left_long_max_loop_repeats | int }}"
+
+      - conditions:
+          - alias: Left button release
+            condition: "{{ trigger.event.data.command == 'release' and last_controller_event_action == 'button_left_long' }}"
+        sequence:
+          - alias: Update last controller event helper
+            service: input_text.set_value
+            data:
+              entity_id: !input helper_last_controller_event
+              value: "{{ {'a': 'button_left_release', 't': trigger.event.time_fired } | to_json }}"
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
+            event_data:
+              controller: !input zha_controller_device
+              action: button_left_release
+          - alias: Run custom action
+            choose:
+              - conditions: []
+                sequence: !input action_button_left_release
+
+## Left press
+# command: press
+# args: [257, 13, 0]
+# params:
+#   param1: 257
+#   param2: 13
+#   param3: 0
+## Left long press
+# command: hold
+# args: [3329, 0]
+# params:
+#   param1: 3329
+#   param2: 0
+## Left long press release
+# command: release
+# args: [param1]
+# params:
+#   param1: # number of ms held
+
+## Right press
+# command: press
+# args: [256, 13, 0]
+# params:
+#   param1: 256
+#   param2: 13
+#   param3: 0
+## Right long press
+# command: hold
+# args: [3328, 0]
+# params:
+#   param1: 3328
+#   param2: 0
+## Right long press release
+# command: release
+# args: [param1]
+# params:
+#   param1: # number of ms held
