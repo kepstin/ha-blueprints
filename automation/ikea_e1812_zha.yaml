@@ -13,7 +13,7 @@ blueprint:
 
 
 
-    Version: 0.1.1
+    Version: 1.0.0
   source_url: https://github.com/kepstin/ha-blueprints/blob/main/automation/ikea_e1812_zha.yaml
   domain: automation
   input:
@@ -22,39 +22,46 @@ blueprint:
       selector:
         device:
           integration: zha
+          manufacturer: IKEA of Sweden
+          model: TRADFRI SHORTCUT Button
+          multiple: false
 
     action_button_short:
-      name: Button short press action
+      name: Short press action
       default: []
       selector:
         action:
 
     action_button_double:
-      name: Button double press action
+      name: Double press action
       default: []
       selector:
         action:
 
     action_button_long:
-      name: Button long press action
+      name: Long press action
       default: []
       selector:
         action:
-
-    action_button_release:
-      name: Button long press release action
-      default: []
-      selector:
-        action:
-
+        
     button_long_loop:
-      name: Button long press - loop until release
+      name: Loop long press action until release
       default: false
       selector:
         boolean:
 
-    button_long_max_loop_repeats:
-      name: Button long press - maximum loop repeats
+    action_button_release:
+      name: Long press release action
+      default: []
+      selector:
+        action:
+
+    max_loop_repeats:
+      name: Long press maximum loop repeats
+      description: >
+        Maximum number of repeats for the action when looping is enabled.
+        Use it as a safety limit to prevent an endless loop in case the
+        corresponding stop event is not received.
       default: 500
       selector:
         number:
@@ -68,19 +75,47 @@ max_exceeded: silent
 
 variables:
   button_long_loop: !input button_long_loop
-  button_long_max_loop_repeats: !input button_long_max_loop_repeats
+  max_loop_repeats: !input max_loop_repeats
 
 trigger:
-  - platform: event
-    event_type: zha_event
-    event_data:
-      device_id: !input zha_controller_device
+  - alias: Short press
+    id: button_short
+    platform: device
+    device_id: !input zha_controller_device
+    domain: zha
+    type: remote_button_short_press
+    subtype: turn_on
+    
+  - alias: Double press
+    id: button_double
+    platform: device
+    device_id: !input zha_controller_device
+    domain: zha
+    type: remote_button_double_press
+    subtype: turn_on
+    
+  - alias: Long press
+    id: button_long
+    platform: device
+    device_id: !input zha_controller_device
+    domain: zha
+    type: remote_button_long_press
+    subtype: dim_up
+    
+  - alias: Long press release
+    id: button_release
+    platform: device
+    device_id: !input zha_controller_device
+    domain: zha
+    type: remote_button_long_release
+    subtype: dim_up
 
 action:
   - choose:
-      - conditions:
-          - alias: Button short press
-            condition: "{{ trigger.event.data.command == 'on' }}"
+      - alias: Short press
+        conditions:
+          - condition: trigger
+            id: button_short
         sequence:
           - alias: Send awesome-ha-blueprints controller event
             event: ahb_controller_event
@@ -92,9 +127,10 @@ action:
               - conditions: []
                 sequence: !input action_button_short
 
-      - conditions:
-          - alias: Button double press
-            condition: "{{ trigger.event.data.command == 'off' }}"
+      - alias: Double press
+        conditions:
+          - condition: trigger
+            id: button_double
         sequence:
           - alias: Send awesome-ha-blueprints controller event
             event: ahb_controller_event
@@ -106,9 +142,10 @@ action:
               - conditions: []
                 sequence: !input action_button_double
 
-      - conditions:
-          - alias: Button long press
-            condition: "{{ trigger.event.data.command == 'move_with_on_off' }}"
+      - alias: Long press
+        conditions:
+          - condition: trigger
+            id: button_long
         sequence:
           - alias: Send awesome-ha-blueprints controller event
             event: ahb_controller_event
@@ -118,16 +155,19 @@ action:
           - alias: Run custom action with looping
             repeat:
               sequence: !input action_button_long
-              until: "{{ not button_long_loop or repeat.index >= button_long_max_loop_repeats | int }}"
+              until: "{{ not button_long_loop or repeat.index >= max_loop_repeats | int }}"
 
-      - conditions:
-          - alias: Button release
-            condition: "{{ trigger.event.data.command == 'stop_with_on_off' }}"
+      - alias: Long press release
+        conditions:
+          - condition: trigger
+            id: button_release
         sequence:
-          - event: ahb_controller_event
+          - alias: Send awesome-ha-blueprints controller event
+            event: ahb_controller_event
             event_data:
               controller: !input zha_controller_device
               action: button_release
-          - choose:
+          - alias: Run custom action
+            choose:
               - conditions: []
                 sequence: !input action_button_release
